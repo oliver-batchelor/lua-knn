@@ -27,8 +27,6 @@
   */
 
 
-// If the code is used in Matlab, set MATLAB_CODE to 1. Otherwise, set MATLAB_CODE to 0.
-
 
 // Includes
 #include <stdio.h>
@@ -41,7 +39,9 @@
 
 // Constants used by the program
 #define MAX_PART_OF_FREE_MEMORY_USED   0.9
-#define BLOCK_DIM                      32
+
+//Code breaks with different values of this constant
+#define BLOCK_DIM                      32  
 
 
 
@@ -67,8 +67,8 @@
 __global__ void cuComputeDistanceGlobal( float* A, int wA, int pA, float* B, int wB, int pB, int dim,  float* AB){
 
 	// Declaration of the shared memory arrays As and Bs used to store the sub-matrix of A and B
-	__shared__ float shared_A[BLOCK_DIM][BLOCK_DIM];
-	__shared__ float shared_B[BLOCK_DIM][BLOCK_DIM];
+    __shared__ float shared_A[BLOCK_DIM][BLOCK_DIM];
+    __shared__ float shared_B[BLOCK_DIM][BLOCK_DIM];
     
     // Sub-matrix of A (begin, step, end) and Sub-matrix of B (begin, step)
     __shared__ int begin_A;
@@ -82,7 +82,7 @@ __global__ void cuComputeDistanceGlobal( float* A, int wA, int pA, float* B, int
     int ty = threadIdx.y;
 	
 	// Other variables
-	float tmp;
+    float tmp;  
     float ssd = 0;
 	
     // Loop parameters
@@ -93,7 +93,7 @@ __global__ void cuComputeDistanceGlobal( float* A, int wA, int pA, float* B, int
     end_A   = begin_A + (dim-1) * pA;
     
     // Conditions
-	int cond0 = (begin_A + tx < wA); // used to write in shared memory
+    int cond0 = (begin_A + tx < wA); // used to write in shared memory
     int cond1 = (begin_B + tx < wB); // used to write in shared memory & to computations and to write in output matrix
     int cond2 = (begin_A + ty < wA); // used to computations and to write in output matrix
     
@@ -115,10 +115,10 @@ __global__ void cuComputeDistanceGlobal( float* A, int wA, int pA, float* B, int
         
         // Compute the difference between the two matrixes; each thread computes one element of the block sub-matrix
         if (cond2 && cond1){
-            for (int k = 0; k < BLOCK_DIM; ++k){
-				tmp = shared_A[k][ty] - shared_B[k][tx];
-                ssd += tmp*tmp;
-			}
+          for (int k = 0; k < BLOCK_DIM; ++k){
+            tmp = shared_A[k][ty] - shared_B[k][tx];
+            ssd += tmp*tmp;
+          }
         }
         
         // Synchronize to make sure that the preceding computation is done before loading two new sub-matrices of A and B in the next iteration
@@ -303,7 +303,7 @@ void knn(float* ref_host, int ref_width, float* query_host, int query_width, int
       
       // Determine maximum number of query that can be treated
       max_nb_query_traited = ( memory_free * MAX_PART_OF_FREE_MEMORY_USED - sizeof(float) * ref_width*height ) / ( sizeof(float) * (height + ref_width) + sizeof(int) * k);
-      max_nb_query_traited = min( query_width, int((max_nb_query_traited / 16) * 16) );
+      max_nb_query_traited = min( query_width, int((max_nb_query_traited / BLOCK_DIM) * BLOCK_DIM) );
       
       // Allocation of global memory for query points and for distances
       result = cudaMallocPitch( (void **) &query_dev, &query_pitch_in_bytes, max_nb_query_traited * sizeof(float), height + ref_width);
@@ -335,20 +335,23 @@ void knn(float* ref_host, int ref_width, float* query_host, int query_width, int
           // Copy of part of query actually being treated
           cudaMemcpy2D(query_dev, query_pitch_in_bytes, &query_host[i], query_width*sizeof(float), actual_nb_query_width*sizeof(float), height, cudaMemcpyHostToDevice);
           
+          
+          
           // Grids ans threads
-          dim3 g_16x16(actual_nb_query_width/16, ref_width/16, 1);
-          dim3 t_16x16(16, 16, 1);
-          if (actual_nb_query_width%16 != 0) g_16x16.x += 1;
-          if (ref_width  %16 != 0) g_16x16.y += 1;
+          dim3 g_16x16(actual_nb_query_width/BLOCK_DIM, ref_width/BLOCK_DIM, 1);
+          dim3 t_16x16(BLOCK_DIM, BLOCK_DIM, 1);
+          
+          if (actual_nb_query_width%BLOCK_DIM != 0) g_16x16.x += 1;
+          if (ref_width  %BLOCK_DIM != 0) g_16x16.y += 1;
           //
-          dim3 g_256x1(actual_nb_query_width/256, 1, 1);
-          dim3 t_256x1(256, 1, 1);
-          if (actual_nb_query_width%256 != 0) g_256x1.x += 1;
+          dim3 g_256x1(actual_nb_query_width/(BLOCK_DIM*BLOCK_DIM), 1, 1);
+          dim3 t_256x1((BLOCK_DIM*BLOCK_DIM), 1, 1);
+          if (actual_nb_query_width%(BLOCK_DIM*BLOCK_DIM) != 0) g_256x1.x += 1;
       //
-          dim3 g_k_16x16(actual_nb_query_width/16, k/16, 1);
-          dim3 t_k_16x16(16, 16, 1);
-          if (actual_nb_query_width%16 != 0) g_k_16x16.x += 1;
-          if (k  %16 != 0) g_k_16x16.y += 1;
+          dim3 g_k_16x16(actual_nb_query_width/BLOCK_DIM, k/BLOCK_DIM, 1);
+          dim3 t_k_16x16(BLOCK_DIM, BLOCK_DIM, 1);
+          if (actual_nb_query_width%BLOCK_DIM != 0) g_k_16x16.x += 1;
+          if (k  %BLOCK_DIM != 0) g_k_16x16.y += 1;
           
           // Kernel 1: Compute all the distances
           cuComputeDistanceGlobal<<<g_16x16,t_16x16>>>(ref_dev, ref_width, ref_pitch, query_dev, actual_nb_query_width, query_pitch, height, dist_dev);

@@ -39,7 +39,8 @@ function knn.knn(...)
    
    k = math.min(k, ref:size(1))
    
-   return libknn.knn(k, ref:t():contiguous(), query:t():contiguous())
+   local distances, indices = libknn.knn(k, ref:t():contiguous(), query:t():contiguous())
+   return distances:t(), indices:t()
 end
 
 

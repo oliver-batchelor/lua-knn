@@ -22,8 +22,8 @@ static int knn(lua_State* L) {
     if(features != query->size[0])
       throw std::invalid_argument("knn: query and reference points must have the same size");
     
-    distances = THFloatTensor_newWithSize2d(query->size[1], k);
-    indices = THIntTensor_newWithSize2d(query->size[1], k);      
+    distances = THFloatTensor_newWithSize2d(k, query->size[1]);
+    indices = THIntTensor_newWithSize2d(k, query->size[1]);      
 
   
     knn(THFloatTensor_data(ref), ref->size[1], THFloatTensor_data(query), query->size[1], features, k, THFloatTensor_data(distances), THIntTensor_data(indices));
