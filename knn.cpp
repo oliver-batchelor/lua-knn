@@ -3,6 +3,13 @@
 
 #include <stdexcept>
 
+template<typename T> struct TensorType;
+
+
+template<typename T> typename TensorType<T>::Tensor *check(lua_State *L, int i);
+
+
+
 extern void knn(float* ref_host, int ref_width, float* query_host, int query_width, int height, int k, float* dist_host, int* ind_host);
 
 static int knn(lua_State* L) {
@@ -44,6 +51,16 @@ static int knn(lua_State* L) {
   return 1;
 }
 
+#define torch_(NAME) TH_CONCAT_3(torch_, Real, NAME)
+#define torch_Tensor        TH_CONCAT_STRING_3(torch.,Real,Tensor)
+#define libknn_(NAME) TH_CONCAT_3(libknn_, Real, NAME)
+
+#include "generic/knn.cpp"
+#include "THGenerateAllTypes.h"
+
+
+
+
 //============================================================
 // Register functions in LUA
 //
@@ -60,7 +77,13 @@ extern "C" {
   {
 
     luaL_register(L, "libknn", libknn_init);
-
+    
+    libknn_ByteMain_init(L);
+    libknn_CharMain_init(L);
+    libknn_IntMain_init(L);
+    libknn_LongMain_init(L);
+    libknn_FloatMain_init(L);
+    libknn_DoubleMain_init(L);    
 
     return 1;
   }

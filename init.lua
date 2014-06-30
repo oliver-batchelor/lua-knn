@@ -44,5 +44,36 @@ function knn.knn(...)
 end
 
 
+function knn.lookup(...)
+
+   local _, table, indexes = dok.unpack(
+      {...},
+      'knn.knn',
+      [[K-Nearest Neighbours]],
+           
+      {arg='table', type='torch.*Tensor',
+       help='table to index, 1d tensor', req=true},
+
+      {arg='indexes', type='torch.IntTensor | torch.LongTensor | torch.ShortTensor | torch.ByteTensor',
+       help='tensor of indexes into the table', req=true}
+   )
+   
+     
+   assert(table:dim() == 1)
+   
+   if(torch.typename(indexes) == "torch.ByteTensor") then
+    return table.libknn.lookup_byte(table, indexes)
+   elseif (torch.typename(indexes) == "torch.ShortTensor") then
+     return table.libknn.lookup_short(table, indexes)
+   elseif (torch.typename(indexes) == "torch.IntTensor") then
+     return table.libknn.lookup_int(table, indexes)
+   elseif (torch.typename(indexes) == "torch.LongTensor") then     
+      return table.libknn.lookup_long(table, indexes)
+   else
+      assert(false, "indexes must have integer type") 
+   end
+     
+end
+
 
 return knn

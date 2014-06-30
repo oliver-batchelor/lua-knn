@@ -6,13 +6,14 @@ SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}"
 FIND_PACKAGE(Torch REQUIRED)
 FIND_PACKAGE(CUDA 4.0 REQUIRED)
 
+# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-
+INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}")
 INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 LINK_DIRECTORIES("${Torch_INSTALL_LIB}")
 
 # SET(src knn.cpp)s
-SET(src-cuda knn.cpp knn_cuda.cu)
+SET(src-cuda knn.cpp knn_cuda.cu generic/knn.cpp)
 SET(luasrc init.lua)
 
 CUDA_ADD_LIBRARY(knn MODULE ${src-cuda})
@@ -21,6 +22,7 @@ CUDA_ADD_CUBLAS_TO_TARGET(knn)
 
 # ADD_TORCH_PACKAGE(knn "${src}" "${luasrc}" "Machine Learning")
 TARGET_LINK_LIBRARIES(knn luaT TH)
+
 
 SET_TARGET_PROPERTIES(knn PROPERTIES
   PREFIX "lib"
@@ -33,4 +35,5 @@ INSTALL(TARGETS knn
 INSTALL(
   FILES
   ${luasrc}
+
   DESTINATION "${Torch_INSTALL_LUA_PATH_SUBDIR}/knn")
