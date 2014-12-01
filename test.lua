@@ -27,7 +27,7 @@ test.benchmark = function(k, size, q, n)
 end
 
 
-test.test = function(k, size, q, n)
+test.knn = function(k, size, q, n)
   local data = torch.FloatTensor():rand(n, size)
   local query = torch.FloatTensor(q, size):zero()
   
@@ -51,11 +51,36 @@ test.test = function(k, size, q, n)
   print(string.format("test passed, knn (k: %d) (features: %d) (query: %d) (data: %d)", k, query:size(2), query:size(1), data:size(1)))
 end
 
-test.test(2, 5, 10, 10)
-test.test(4, 1280, 100, 10000)
-test.test(4, 100, 200, 10000)
 
-test.test(16, 1024, 2000, 70000)
+
+test.lookup = function(n)
+
+  for i = 1, n do
+    
+    local n1 = torch.random(100)
+    local n2 = torch.random(10)
+    
+    local l = torch.random(20)
+    
+    local table = torch.LongTensor():range(1, l)
+    local indices = torch.IntTensor(n1, n2):random(1, l)
+    
+    local r = knn.lookup(table, indices):int()
+    
+    assert(r:eq(indices):min() == 1, string.format("lookup failed table = %d indices = (%d, %d)", l, n1, n2))
+  end
+  
+  print(string.format("lookup passed %d tests", n))
+
+end
+
+test.lookup(10000)
+
+test.knn(2, 5, 10, 10)
+test.knn(4, 1280, 100, 10000)
+test.knn(4, 100, 200, 10000)
+
+test.knn(16, 1024, 2000, 70000)
 
 test.benchmark(2, 128, 10000, 10000)
 test.benchmark(4, 128, 10000, 50000)

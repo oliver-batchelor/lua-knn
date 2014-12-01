@@ -37,9 +37,10 @@ inline int libknn_(lookup) (lua_State *L) {
     THTensor *dest = THTensor_(newWithSize)(newSizeOf(index), NULL);
     real *tableData = (real*)data(table);
     
-    TH_TENSOR_APPLY2(real, dest, T, index,  *dest_data = tableData[*index_data]; );
+    TH_TENSOR_APPLY2(real, dest, T, index,  *dest_data = tableData[*index_data - 1]; );
     
     libknn_(push)(L, dest);
+    
     return 1;       
     
   } catch (std::exception const &e) {

@@ -21,7 +21,7 @@ CUDA_ADD_LIBRARY(knn MODULE ${src-cuda})
 CUDA_ADD_CUBLAS_TO_TARGET(knn)
 
 # ADD_TORCH_PACKAGE(knn "${src}" "${luasrc}" "Machine Learning")
-TARGET_LINK_LIBRARIES(knn luaT TH)
+TARGET_LINK_LIBRARIES(knn luaT TH cuda)
 
 
 SET_TARGET_PROPERTIES(knn PROPERTIES

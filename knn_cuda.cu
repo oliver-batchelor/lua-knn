@@ -211,23 +211,6 @@ __global__ void cuInsertionSort(float *dist, int dist_pitch, int *ind, int ind_p
 
 
 
-/**
-  * Computes the square root of the first line (width-th first element)
-  * of the distance matrix.
-  *
-  * @param dist    distance matrix
-  * @param width   width of the distance matrix
-  * @param pitch   pitch of the distance matrix given in number of columns
-  * @param k       number of neighbors to consider
-  */
-__global__ void cuParallelSqrt(float *dist, int width, int pitch, int k){
-    unsigned int xIndex = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int yIndex = blockIdx.y * blockDim.y + threadIdx.y;
-    if (xIndex<width && yIndex<k)
-        dist[yIndex*pitch + xIndex] = sqrt(dist[yIndex*pitch + xIndex]);
-}
-
-
 
 //-----------------------------------------------------------------------------------------------//
 //                                   K-th NEAREST NEIGHBORS                                      //
@@ -360,7 +343,7 @@ void knn(float* ref_host, int ref_width, float* query_host, int query_width, int
           cuInsertionSort<<<g_256x1,t_256x1>>>(dist_dev, query_pitch, ind_dev, ind_pitch, actual_nb_query_width, ref_width, k);
           
           // Kernel 3: Compute square root of k first elements
-          cuParallelSqrt<<<g_k_16x16,t_k_16x16>>>(dist_dev, query_width, query_pitch, k);
+//           cuParallelSqrt<<<g_k_16x16,t_k_16x16>>>(dist_dev, query_width, query_pitch, k);
           
           // Memory copy of output from device to host
           cudaMemcpy2D(&dist_host[i], query_width*sizeof(float), dist_dev, query_pitch_in_bytes, actual_nb_query_width*sizeof(float), k, cudaMemcpyDeviceToHost);
